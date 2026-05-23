@@ -53,16 +53,17 @@ Zakoncz Transfer Dla Wszystkich Bearerow UE
     FOR    ${bearer_id}    IN    @{bearers}
         ${del_response}=    DELETE On Session    epc_simulator    /ues/${ue_id}/bearers/${bearer_id}/traffic    expected_status=any
     END
-    Sprawdz Czy Wszystkie Transfery UE Sa Zatrzymane    ${ue_id}
+    Sprawdz Czy Wszystkie Bearery UE Sa Nieaktywne    ${ue_id}
 
-Sprawdz Czy Wszystkie Transfery UE Sa Zatrzymane
+Sprawdz Czy Wszystkie Bearery UE Sa Nieaktywne
     [Arguments]    ${ue_id}
-    ${params}=        Create Dictionary    ue_id=${ue_id}
-    ${response}=      GET On Session    epc_simulator    /ues/stats    params=${params}
+    ${response}=      GET On Session    epc_simulator    /ues/${ue_id}
     Status Should Be  200    ${response}
     ${resp_json}=     Set Variable    ${response.json()}
-    Should Be Equal As Integers    ${resp_json}[total_tx_bps]    0
-    Should Be Equal As Integers    ${resp_json}[total_rx_bps]    0
+    ${bearers}=       Get Dictionary Values    ${resp_json}[bearers]
+    FOR    ${bearer}    IN    @{bearers}
+        Should Not Be True    ${bearer}[active]
+    END
 
 Reset Emulatora
     ${response}=      POST On Session      epc_simulator    /reset    expected_status=any

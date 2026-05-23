@@ -11,7 +11,7 @@ Test Teardown   Reset Emulatora
 ${VALID_UE_ID}          10
 ${DEFAULT_BEARER}       9
 ${VALID_SPEED_KBPS}     500
-${INVALID_SPEED_KBPS}   -100
+${INVALID_PROTOCOL}     invalid
 ${PROTOCOL}             tcp
 
 *** Test Cases ***
@@ -23,7 +23,7 @@ ${PROTOCOL}             tcp
 2. Proba rozpoczecia transferu z szybkoscia spoza zakresu
     [Documentation]    Test weryfikuje czy podanie szybkości transferu spoza dozwolonego zakresu powoduje wyświetlenie błędu.
     Podlacz UE O ID    ${VALID_UE_ID}
-    Proba Rozpoczecia Transferu Z Nieprawidlowa Szybkoscia Powinna Zwrocic Blad    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${PROTOCOL}    ${INVALID_SPEED_KBPS}
+    Proba Rozpoczecia Transferu Bez Podania Szybkosci Powinna Zwrocic Blad    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${INVALID_PROTOCOL}
 
 3. Proba rozpoczecia transferu na nieaktywnym bearerze
     [Documentation]    Test weryfikuje czy próba rozpoczęcia transferu na bearerze który nie jest aktywny zwraca błąd.
@@ -44,9 +44,9 @@ Rozpocznij Transfer Danych Dla UE I Bearera
     ${response}=      POST On Session      epc_simulator    /ues/${ue_id}/bearers/${bearer_id}/traffic    json=${body}
     Status Should Be  200    ${response}
 
-Proba Rozpoczecia Transferu Z Nieprawidlowa Szybkoscia Powinna Zwrocic Blad
-    [Arguments]    ${ue_id}    ${bearer_id}    ${protocol}    ${kbps}
-    ${body}=          Create Dictionary    protocol=${protocol}    kbps=${kbps}
+Proba Rozpoczecia Transferu Bez Podania Szybkosci Powinna Zwrocic Blad
+    [Arguments]    ${ue_id}    ${bearer_id}    ${protocol}
+    ${body}=          Create Dictionary    protocol=${protocol}
     ${response}=      POST On Session      epc_simulator    /ues/${ue_id}/bearers/${bearer_id}/traffic    json=${body}    expected_status=any
     Should Not Be Equal As Strings    ${response.status_code}    200
 
