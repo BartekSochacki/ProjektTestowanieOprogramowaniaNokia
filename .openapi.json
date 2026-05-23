@@ -1,0 +1,1016 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Simple EPC Simulator",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/ues/stats": {
+      "get": {
+        "summary": "Get Ues Stats",
+        "operationId": "get_ues_stats_ues_stats_get",
+        "parameters": [
+          {
+            "name": "ue_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ue Id"
+            }
+          },
+          {
+            "name": "include_details",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Details"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AggregatedStatsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ues": {
+      "get": {
+        "summary": "List Ues",
+        "operationId": "list_ues_ues_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UEListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Attach Ue",
+        "operationId": "attach_ue_ues_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachUERequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ues/{ue_id}": {
+      "get": {
+        "summary": "Get Ue",
+        "operationId": "get_ue_ues__ue_id__get",
+        "parameters": [
+          {
+            "name": "ue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Ue Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UEDisplayResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Detach Ue",
+        "operationId": "detach_ue_ues__ue_id__delete",
+        "parameters": [
+          {
+            "name": "ue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Ue Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetachResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ues/{ue_id}/bearers": {
+      "post": {
+        "summary": "Add Bearer",
+        "operationId": "add_bearer_ues__ue_id__bearers_post",
+        "parameters": [
+          {
+            "name": "ue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Ue Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddBearerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BearerAddResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ues/{ue_id}/bearers/{bearer_id}": {
+      "delete": {
+        "summary": "Delete Bearer",
+        "operationId": "delete_bearer_ues__ue_id__bearers__bearer_id__delete",
+        "parameters": [
+          {
+            "name": "ue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Ue Id"
+            }
+          },
+          {
+            "name": "bearer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bearer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BearerDeleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ues/{ue_id}/bearers/{bearer_id}/traffic": {
+      "post": {
+        "summary": "Start Traffic",
+        "operationId": "start_traffic_ues__ue_id__bearers__bearer_id__traffic_post",
+        "parameters": [
+          {
+            "name": "ue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Ue Id"
+            }
+          },
+          {
+            "name": "bearer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bearer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartTrafficRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrafficStartResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Stop Traffic",
+        "operationId": "stop_traffic_ues__ue_id__bearers__bearer_id__traffic_delete",
+        "parameters": [
+          {
+            "name": "ue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Ue Id"
+            }
+          },
+          {
+            "name": "bearer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bearer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrafficStopResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Get Traffic Stats",
+        "operationId": "get_traffic_stats_ues__ue_id__bearers__bearer_id__traffic_get",
+        "parameters": [
+          {
+            "name": "ue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Ue Id"
+            }
+          },
+          {
+            "name": "bearer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bearer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrafficStatsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reset": {
+      "post": {
+        "summary": "Reset All",
+        "operationId": "reset_all_reset_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddBearerRequest": {
+        "properties": {
+          "bearer_id": {
+            "type": "integer",
+            "maximum": 9.0,
+            "minimum": 1.0,
+            "title": "Bearer Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bearer_id"
+        ],
+        "title": "AddBearerRequest"
+      },
+      "AggregatedStatsResponse": {
+        "properties": {
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "ue_count": {
+            "type": "integer",
+            "title": "Ue Count"
+          },
+          "bearer_count": {
+            "type": "integer",
+            "title": "Bearer Count"
+          },
+          "total_tx_bps": {
+            "type": "integer",
+            "title": "Total Tx Bps"
+          },
+          "total_rx_bps": {
+            "type": "integer",
+            "title": "Total Rx Bps"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scope",
+          "ue_count",
+          "bearer_count",
+          "total_tx_bps",
+          "total_rx_bps"
+        ],
+        "title": "AggregatedStatsResponse"
+      },
+      "AttachResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "ue_id": {
+            "type": "integer",
+            "title": "Ue Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "ue_id"
+        ],
+        "title": "AttachResponse"
+      },
+      "AttachUERequest": {
+        "properties": {
+          "ue_id": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Ue Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ue_id"
+        ],
+        "title": "AttachUERequest"
+      },
+      "BearerAddResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "ue_id": {
+            "type": "integer",
+            "title": "Ue Id"
+          },
+          "bearer_id": {
+            "type": "integer",
+            "title": "Bearer Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "ue_id",
+          "bearer_id"
+        ],
+        "title": "BearerAddResponse"
+      },
+      "BearerConfig": {
+        "properties": {
+          "bearer_id": {
+            "type": "integer",
+            "maximum": 9.0,
+            "minimum": 1.0,
+            "title": "Bearer Id"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(tcp|udp)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol"
+          },
+          "target_bps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Bps"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "bearer_id"
+        ],
+        "title": "BearerConfig"
+      },
+      "BearerDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "ue_id": {
+            "type": "integer",
+            "title": "Ue Id"
+          },
+          "bearer_id": {
+            "type": "integer",
+            "title": "Bearer Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "ue_id",
+          "bearer_id"
+        ],
+        "title": "BearerDeleteResponse"
+      },
+      "DetachResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "ue_id": {
+            "type": "integer",
+            "title": "Ue Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "ue_id"
+        ],
+        "title": "DetachResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "StartTrafficRequest": {
+        "properties": {
+          "protocol": {
+            "type": "string",
+            "pattern": "^(tcp|udp)$",
+            "title": "Protocol"
+          },
+          "Mbps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mbps"
+          },
+          "kbps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kbps"
+          },
+          "bps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "protocol"
+        ],
+        "title": "StartTrafficRequest"
+      },
+      "StatusResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "StatusResponse"
+      },
+      "ThroughputStats": {
+        "properties": {
+          "bearer_id": {
+            "type": "integer",
+            "title": "Bearer Id"
+          },
+          "ue_id": {
+            "type": "integer",
+            "title": "Ue Id"
+          },
+          "bytes_tx": {
+            "type": "integer",
+            "title": "Bytes Tx",
+            "default": 0
+          },
+          "bytes_rx": {
+            "type": "integer",
+            "title": "Bytes Rx",
+            "default": 0
+          },
+          "start_ts": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Ts"
+          },
+          "last_update_ts": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Update Ts"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol"
+          },
+          "target_bps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Bps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bearer_id",
+          "ue_id"
+        ],
+        "title": "ThroughputStats"
+      },
+      "TrafficStartResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "ue_id": {
+            "type": "integer",
+            "title": "Ue Id"
+          },
+          "bearer_id": {
+            "type": "integer",
+            "title": "Bearer Id"
+          },
+          "target_bps": {
+            "type": "integer",
+            "title": "Target Bps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "ue_id",
+          "bearer_id",
+          "target_bps"
+        ],
+        "title": "TrafficStartResponse"
+      },
+      "TrafficStatsResponse": {
+        "properties": {
+          "ue_id": {
+            "type": "integer",
+            "title": "Ue Id"
+          },
+          "bearer_id": {
+            "type": "integer",
+            "title": "Bearer Id"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol"
+          },
+          "target_bps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Bps"
+          },
+          "tx_bps": {
+            "type": "integer",
+            "title": "Tx Bps"
+          },
+          "rx_bps": {
+            "type": "integer",
+            "title": "Rx Bps"
+          },
+          "duration": {
+            "type": "number",
+            "title": "Duration"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ue_id",
+          "bearer_id",
+          "tx_bps",
+          "rx_bps",
+          "duration"
+        ],
+        "title": "TrafficStatsResponse"
+      },
+      "TrafficStopResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "ue_id": {
+            "type": "integer",
+            "title": "Ue Id"
+          },
+          "bearer_id": {
+            "type": "integer",
+            "title": "Bearer Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "ue_id",
+          "bearer_id"
+        ],
+        "title": "TrafficStopResponse"
+      },
+      "UEDisplayResponse": {
+        "properties": {
+          "ue_id": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Ue Id"
+          },
+          "bearers": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BearerConfig"
+            },
+            "type": "object",
+            "title": "Bearers",
+            "default": {}
+          },
+          "stats": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ThroughputStats"
+            },
+            "type": "object",
+            "title": "Stats",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "ue_id"
+        ],
+        "title": "UEDisplayResponse"
+      },
+      "UEListResponse": {
+        "properties": {
+          "ues": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Ues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ues"
+        ],
+        "title": "UEListResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
