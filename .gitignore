@@ -15,3 +15,12 @@ report.html
 output.xml
 
 .idea
+
+# Skrypty pomocnicze
+generate_excel_report.py
+generate_template_report.py
+read_template.py
+
+# Artefakty tymczasowe
+results/raport_testow.xlsx
+results/slajd*.jpg

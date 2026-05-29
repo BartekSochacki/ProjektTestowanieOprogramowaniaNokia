@@ -3,68 +3,118 @@ Documentation   Testy funkcjonalności zakończenia przesyłania danych w symula
 Library         RequestsLibrary
 Library         Collections
 
-Suite Setup     Create Session    epc_simulator    http://localhost:8000
-Suite Teardown  Delete All Sessions
-Test Teardown   Reset Emulatora
-
 *** Variables ***
+${BASE_URL}             http://localhost:8000
 ${VALID_UE_ID}          10
 ${DEFAULT_BEARER}       9
+${DODATKOWY_BEARER}     3
 ${VALID_SPEED_KBPS}     500
 ${PROTOCOL}             tcp
-
-*** Test Cases ***
-1. Zakonczenie transferu dla konkretnego bearera w ramach UE
-    [Documentation]    Test sprawdza czy można zakończyć transfer danych dla poszczególnego bearera w ramach podłączonego UE.
-    Podlacz UE O ID    ${VALID_UE_ID}
-    Rozpocznij Transfer Danych Dla UE I Bearera    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${PROTOCOL}    ${VALID_SPEED_KBPS}
-    Zakoncz Transfer Dla Bearera    ${VALID_UE_ID}    ${DEFAULT_BEARER}
-
-2. Zakonczenie transferu dla wszystkich bearerow w ramach UE
-    [Documentation]    Test sprawdza czy można całkowicie zakończyć transfer danych dla wszystkich bearerów danego UE.
-    Podlacz UE O ID    ${VALID_UE_ID}
-    Rozpocznij Transfer Danych Dla UE I Bearera    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${PROTOCOL}    ${VALID_SPEED_KBPS}
-    Zakoncz Transfer Dla Wszystkich Bearerow UE    ${VALID_UE_ID}
+${NIEPODLACZONY_UE_ID}  99
 
 *** Keywords ***
-Podlacz UE O ID
+Setup API Session
+    Create Session    epc    ${BASE_URL}
+    POST On Session    epc    /reset    expected_status=any
+
+Attach UE
     [Arguments]    ${ue_id}
-    ${body}=          Create Dictionary    ue_id=${ue_id}
-    ${response}=      POST On Session      epc_simulator    /ues    json=${body}
-    Status Should Be  200    ${response}
+    &{body}=        Create Dictionary    ue_id=${ue_id}
+    ${response}=    POST On Session    epc    /ues    json=${body}    expected_status=any
+    RETURN    ${response}
 
-Rozpocznij Transfer Danych Dla UE I Bearera
-    [Arguments]    ${ue_id}    ${bearer_id}    ${protocol}    ${kbps}
-    ${body}=          Create Dictionary    protocol=${protocol}    kbps=${kbps}
-    ${response}=      POST On Session      epc_simulator    /ues/${ue_id}/bearers/${bearer_id}/traffic    json=${body}
-    Status Should Be  200    ${response}
-
-Zakoncz Transfer Dla Bearera
+Add Bearer
     [Arguments]    ${ue_id}    ${bearer_id}
-    ${response}=      DELETE On Session    epc_simulator    /ues/${ue_id}/bearers/${bearer_id}/traffic
-    Status Should Be  200    ${response}
+    &{body}=        Create Dictionary    bearer_id=${bearer_id}
+    ${response}=    POST On Session    epc    /ues/${ue_id}/bearers    json=${body}    expected_status=any
+    RETURN    ${response}
 
-Zakoncz Transfer Dla Wszystkich Bearerow UE
+Start Traffic
+    [Arguments]    ${ue_id}    ${bearer_id}    ${kbps}    ${protocol}=tcp
+    &{body}=        Create Dictionary    protocol=${protocol}    kbps=${kbps}
+    ${response}=    POST On Session    epc    /ues/${ue_id}/bearers/${bearer_id}/traffic    json=${body}    expected_status=any
+    RETURN    ${response}
+
+Stop Traffic
+    [Arguments]    ${ue_id}    ${bearer_id}
+    ${response}=    DELETE On Session    epc    /ues/${ue_id}/bearers/${bearer_id}/traffic    expected_status=any
+    RETURN    ${response}
+
+Get UE State
     [Arguments]    ${ue_id}
-    ${response}=      GET On Session    epc_simulator    /ues/${ue_id}
-    Status Should Be  200    ${response}
-    ${resp_json}=     Set Variable    ${response.json()}
-    ${bearers}=       Get Dictionary Keys    ${resp_json}[bearers]
+    ${response}=    GET On Session    epc    /ues/${ue_id}    expected_status=any
+    RETURN    ${response}
+
+Status Code Should Be
+    [Arguments]    ${response}    ${expected}
+    Should Be Equal As Integers    ${response.status_code}    ${expected}
+
+Status Code Should Be Error
+    [Arguments]    ${response}
+    Should Be True    ${response.status_code} >= 400
+
+*** Test Cases ***
+TC01 Zakonczenie Transferu Dla Konkretnego Bearera
+    [Documentation]    Transfer danych dla konkretnego bearera można poprawnie zakończyć.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    Start Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${VALID_SPEED_KBPS}
+    ${resp}=    Stop Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}
+    Status Code Should Be    ${resp}    200
+
+TC02 Zakonczenie Transferu Dla Wszystkich Bearerow UE
+    [Documentation]    Transfer można zakończyć dla wszystkich bearerów jednego UE, każdy wraca do stanu nieaktywnego.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    Add Bearer    ${VALID_UE_ID}    ${DODATKOWY_BEARER}
+    Start Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${VALID_SPEED_KBPS}
+    Start Traffic    ${VALID_UE_ID}    ${DODATKOWY_BEARER}    ${VALID_SPEED_KBPS}
+    ${state_before}=    Get UE State    ${VALID_UE_ID}
+    ${bearers}=    Get Dictionary Keys    ${state_before.json()}[bearers]
     FOR    ${bearer_id}    IN    @{bearers}
-        ${del_response}=    DELETE On Session    epc_simulator    /ues/${ue_id}/bearers/${bearer_id}/traffic    expected_status=any
+        Stop Traffic    ${VALID_UE_ID}    ${bearer_id}
     END
-    Sprawdz Czy Wszystkie Bearery UE Sa Nieaktywne    ${ue_id}
-
-Sprawdz Czy Wszystkie Bearery UE Sa Nieaktywne
-    [Arguments]    ${ue_id}
-    ${response}=      GET On Session    epc_simulator    /ues/${ue_id}
-    Status Should Be  200    ${response}
-    ${resp_json}=     Set Variable    ${response.json()}
-    ${bearers}=       Get Dictionary Values    ${resp_json}[bearers]
-    FOR    ${bearer}    IN    @{bearers}
+    ${state_after}=    Get UE State    ${VALID_UE_ID}
+    ${all_bearers}=    Get Dictionary Values    ${state_after.json()}[bearers]
+    FOR    ${bearer}    IN    @{all_bearers}
         Should Not Be True    ${bearer}[active]
     END
 
-Reset Emulatora
-    ${response}=      POST On Session      epc_simulator    /reset    expected_status=any
-    Status Should Be  200    ${response}
+TC03 Zatrzymanie Nieaktywnego Transferu Zwraca Blad
+    [Documentation]    Próba zatrzymania transferu który nie jest aktywny powinna zwrócić błąd. API zwraca 200 (zachowanie idempotentne - niezgodność ze specyfikacją).
+    [Tags]    known-defect
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    ${resp}=    Stop Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}
+    Status Code Should Be Error    ${resp}
+
+TC04 Po Zatrzymaniu Bearer Jest Nieaktywny
+    [Documentation]    Po zatrzymaniu transferu bearer w stanie UE ma flagę active = False.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    Start Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${VALID_SPEED_KBPS}
+    Stop Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}
+    ${state}=    Get UE State    ${VALID_UE_ID}
+    Status Code Should Be    ${state}    200
+    ${default_str}=    Convert To String    ${DEFAULT_BEARER}
+    ${bearer}=    Get From Dictionary    ${state.json()}[bearers]    ${default_str}
+    Should Not Be True    ${bearer}[active]
+
+TC05 Zatrzymanie Transferu Dla Niepodlaczonego UE Zwraca Blad
+    [Documentation]    Próba zatrzymania transferu dla UE które nie jest podłączone zwraca błąd.
+    [Setup]    Setup API Session
+    ${resp}=    Stop Traffic    ${NIEPODLACZONY_UE_ID}    ${DEFAULT_BEARER}
+    Status Code Should Be Error    ${resp}
+
+TC06 Zatrzymanie Transferu Na Jednym Bearerze Nie Wplywa Na Drugi
+    [Documentation]    Zatrzymanie transferu na jednym bearerze nie dezaktywuje pozostałych bearerów UE.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    Add Bearer    ${VALID_UE_ID}    ${DODATKOWY_BEARER}
+    Start Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${VALID_SPEED_KBPS}
+    Start Traffic    ${VALID_UE_ID}    ${DODATKOWY_BEARER}    ${VALID_SPEED_KBPS}
+    Stop Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}
+    ${state}=    Get UE State    ${VALID_UE_ID}
+    ${dodatkowy_str}=    Convert To String    ${DODATKOWY_BEARER}
+    ${bearer}=    Get From Dictionary    ${state.json()}[bearers]    ${dodatkowy_str}
+    Should Be True    ${bearer}[active]

@@ -3,42 +3,86 @@ Documentation   Testy funkcjonalności resetowania symulatora EPC do stanu pocz�
 Library         RequestsLibrary
 Library         Collections
 
-Suite Setup     Create Session    epc_simulator    http://localhost:8000
-Suite Teardown  Delete All Sessions
-
 *** Variables ***
-${VALID_UE_ID}          10
-${DEFAULT_BEARER}       9
+${BASE_URL}         http://localhost:8000
+${VALID_UE_ID}      10
+${DEFAULT_BEARER}   9
 ${VALID_SPEED_KBPS}     500
 ${PROTOCOL}             tcp
 
-*** Test Cases ***
-1. Zresetowanie symulatora przywraca stan poczatkowy
-    [Documentation]    Test sprawdza czy po zresetowaniu symulatora wszystkie podłączone UE zostają usunięte i symulator wraca do stanu początkowego.
-    Podlacz UE O ID    ${VALID_UE_ID}
-    Sprawdz Czy UE Jest Na Liscie Podlaczonych    ${VALID_UE_ID}
-    Zresetuj Symulator
-    Sprawdz Czy Lista Podlaczonych UE Jest Pusta
-
 *** Keywords ***
-Podlacz UE O ID
+Setup API Session
+    Create Session    epc    ${BASE_URL}
+    POST On Session    epc    /reset    expected_status=any
+
+Attach UE
     [Arguments]    ${ue_id}
-    ${body}=          Create Dictionary    ue_id=${ue_id}
-    ${response}=      POST On Session      epc_simulator    /ues    json=${body}
-    Status Should Be  200    ${response}
+    &{body}=        Create Dictionary    ue_id=${ue_id}
+    ${response}=    POST On Session    epc    /ues    json=${body}    expected_status=any
+    RETURN    ${response}
 
-Sprawdz Czy UE Jest Na Liscie Podlaczonych
+Start Traffic
+    [Arguments]    ${ue_id}    ${bearer_id}    ${kbps}    ${protocol}=tcp
+    &{body}=        Create Dictionary    protocol=${protocol}    kbps=${kbps}
+    ${response}=    POST On Session    epc    /ues/${ue_id}/bearers/${bearer_id}/traffic    json=${body}    expected_status=any
+    RETURN    ${response}
+
+Reset Simulator
+    ${response}=    POST On Session    epc    /reset    expected_status=any
+    RETURN    ${response}
+
+Get All UEs
+    ${response}=    GET On Session    epc    /ues    expected_status=any
+    RETURN    ${response}
+
+Get UE State
     [Arguments]    ${ue_id}
-    ${response}=      GET On Session    epc_simulator    /ues/${ue_id}
-    Status Should Be  200    ${response}
+    ${response}=    GET On Session    epc    /ues/${ue_id}    expected_status=any
+    RETURN    ${response}
 
-Zresetuj Symulator
-    ${response}=      POST On Session      epc_simulator    /reset
-    Status Should Be  200    ${response}
+Status Code Should Be
+    [Arguments]    ${response}    ${expected}
+    Should Be Equal As Integers    ${response.status_code}    ${expected}
 
-Sprawdz Czy Lista Podlaczonych UE Jest Pusta
-    ${response}=      GET On Session    epc_simulator    /ues
-    Status Should Be  200    ${response}
-    ${resp_json}=     Set Variable    ${response.json()}
-    ${ues_list}=      Set Variable    ${resp_json}[ues]
-    Should Be Empty    ${ues_list}
+Status Code Should Be Error
+    [Arguments]    ${response}
+    Should Be True    ${response.status_code} >= 400
+
+*** Test Cases ***
+TC01 Reset Przywraca Stan Poczatkowy I Usuwa Wszystkie UE
+    [Documentation]    Po resecie lista podłączonych UE jest pusta.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    ${ues_before}=    Get All UEs
+    Should Not Be Empty    ${ues_before.json()}[ues]
+    Reset Simulator
+    ${ues_after}=    Get All UEs
+    Status Code Should Be    ${ues_after}    200
+    Should Be Empty    ${ues_after.json()}[ues]
+
+TC02 Reset Usuwa UE Wraz Z Bearerami
+    [Documentation]    Po resecie UE nie istnieje w systemie, co oznacza że bearery również są usunięte.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    Reset Simulator
+    ${state}=    Get UE State    ${VALID_UE_ID}
+    Status Code Should Be Error    ${state}
+
+TC03 Reset Zatrzymuje Aktywne Transfery
+    [Documentation]    Po resecie UE z aktywnym transferem nie istnieje, co potwierdza zatrzymanie ruchu.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    Start Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${VALID_SPEED_KBPS}
+    Reset Simulator
+    ${state}=    Get UE State    ${VALID_UE_ID}
+    Status Code Should Be Error    ${state}
+
+TC04 Wielokrotny Reset Jest Mozliwy
+    [Documentation]    Symulator można zresetować wielokrotnie i każde wywołanie zwraca 200.
+    [Setup]    Setup API Session
+    ${r1}=    Reset Simulator
+    Status Code Should Be    ${r1}    200
+    ${r2}=    Reset Simulator
+    Status Code Should Be    ${r2}    200
+    ${r3}=    Reset Simulator
+    Status Code Should Be    ${r3}    200

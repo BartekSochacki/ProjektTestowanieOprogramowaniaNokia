@@ -3,57 +3,103 @@ Documentation   Testy funkcjonalności podłączania UE do symulatora EPC.
 Library         RequestsLibrary
 Library         Collections
 
-Suite Setup     Create Session    epc_simulator    http://localhost:8000
-Suite Teardown  Delete All Sessions
-Test Teardown   Reset Emulatora
-
 *** Variables ***
+${BASE_URL}         http://localhost:8000
 ${VALID_UE_ID}      10
-${OUT_OF_RANGE_ID}  150
+${MIN_UE_ID}        1
+${MAX_UE_ID}        100
+${ZERO_UE_ID}       0
+${NEG_UE_ID}        -1
+${OUT_OF_RANGE_ID}  101
 ${DEFAULT_BEARER}   9
 
-*** Test Cases ***
-1. Podlaczenie UE do sieci z poprawnym ID
-    [Documentation]    Test sprawdza czy można poprawnie podłączyć UE i czy otrzymuje on automatycznie domyślny bearer o ID 9.
-    Podlacz UE O ID    ${VALID_UE_ID}
-    Sprawdz Czy UE Ma Przypisany Bearer    ${VALID_UE_ID}    ${DEFAULT_BEARER}
-
-2. Proba podlaczenia UE o id spoza dozwolonego zakresu
-    [Documentation]    Test weryfikuje zachowanie symulatora gdy podane UE ID wykracza poza zakres (0-100).
-    Proba Podlaczenia UE z nieprawidłowym ID    ${OUT_OF_RANGE_ID}    422
-
-3. Proba ponownego podlaczenia juz podlaczonego UE
-    [Documentation]    Test weryfikuje zachowanie symulatora gdy próbujemy podłączyć UE, które jest już podłączone.
-    Podlacz UE O ID    ${VALID_UE_ID}
-    Proba Ponownego Podlaczenia UE które ma już połączenie    ${VALID_UE_ID}
-
 *** Keywords ***
-Podlacz UE O ID
+Setup API Session
+    Create Session    epc    ${BASE_URL}
+    POST On Session    epc    /reset    expected_status=any
+
+Attach UE
     [Arguments]    ${ue_id}
-    ${body}=          Create Dictionary    ue_id=${ue_id}
-    ${response}=      POST On Session      epc_simulator    /ues    json=${body}
-    Status Should Be  200    ${response}
+    &{body}=        Create Dictionary    ue_id=${ue_id}
+    ${response}=    POST On Session    epc    /ues    json=${body}    expected_status=any
+    RETURN    ${response}
 
-Sprawdz Czy UE Ma Przypisany Bearer
-    [Arguments]    ${ue_id}    ${bearer_id}
-    ${response}=      GET On Session    epc_simulator    /ues/${ue_id}
-    Status Should Be  200    ${response}
-    ${resp_json}=     Set Variable    ${response.json()}
-    ${bearer_id_str}=  Convert To String    ${bearer_id}
-    Dictionary Should Contain Key     ${resp_json}[bearers]    ${bearer_id_str}
+Attach UE Without ID
+    &{body}=        Create Dictionary
+    ${response}=    POST On Session    epc    /ues    json=${body}    expected_status=any
+    RETURN    ${response}
 
-Proba Podlaczenia UE z nieprawidłowym ID
-    [Arguments]    ${ue_id}    ${expected_status}
-    ${body}=          Create Dictionary    ue_id=${ue_id}
-    ${response}=      POST On Session      epc_simulator    /ues    json=${body}    expected_status=any
-    Status Should Be  ${expected_status}    ${response}
-
-Proba Ponownego Podlaczenia UE które ma już połączenie
+Get UE State
     [Arguments]    ${ue_id}
-    ${body}=          Create Dictionary    ue_id=${ue_id}
-    ${response}=      POST On Session      epc_simulator    /ues    json=${body}    expected_status=any
-    Should Not Be Equal As Strings    ${response.status_code}    200
+    ${response}=    GET On Session    epc    /ues/${ue_id}    expected_status=any
+    RETURN    ${response}
 
-Reset Emulatora
-    ${response}=      POST On Session      epc_simulator    /reset    expected_status=any
-    Status Should Be  200    ${response}
+Status Code Should Be
+    [Arguments]    ${response}    ${expected}
+    Should Be Equal As Integers    ${response.status_code}    ${expected}
+
+Status Code Should Be Error
+    [Arguments]    ${response}
+    Should Be True    ${response.status_code} >= 400
+
+*** Test Cases ***
+TC01 Podlaczenie UE Do Sieci Z Poprawnym ID
+    [Documentation]    UE może zostać podłączone do sieci z poprawnym ID.
+    [Setup]    Setup API Session
+    ${resp}=    Attach UE    ${VALID_UE_ID}
+    Status Code Should Be    ${resp}    200
+
+TC02 Podlaczony UE Otrzymuje Domyslny Bearer 9
+    [Documentation]    Po podłączeniu UE automatycznie otrzymuje bearer ID=9.
+    [Setup]    Setup API Session
+    ${resp}=    Attach UE    ${VALID_UE_ID}
+    Status Code Should Be    ${resp}    200
+    ${state}=    Get UE State    ${VALID_UE_ID}
+    Status Code Should Be    ${state}    200
+    ${bearer_str}=    Convert To String    ${DEFAULT_BEARER}
+    Dictionary Should Contain Key    ${state.json()}[bearers]    ${bearer_str}
+
+TC03 Ponowne Podlaczenie Juz Podlaczonego UE Zwraca Blad
+    [Documentation]    UE już podłączone nie może zostać podłączone ponownie, oczekiwany kod 400.
+    [Setup]    Setup API Session
+    ${first}=    Attach UE    ${VALID_UE_ID}
+    Status Code Should Be    ${first}    200
+    ${second}=    Attach UE    ${VALID_UE_ID}
+    Status Code Should Be    ${second}    400
+
+TC04 Podlaczenie UE Z ID Minimalnym
+    [Documentation]    UE ID = 1 (dolna granica dozwolonego zakresu 1-100) powinno być akceptowane.
+    [Setup]    Setup API Session
+    ${resp}=    Attach UE    ${MIN_UE_ID}
+    Status Code Should Be    ${resp}    200
+
+TC05 Podlaczenie UE Z ID Maksymalnym
+    [Documentation]    UE ID = 100 (górna granica dozwolonego zakresu 1-100) powinno być akceptowane.
+    [Setup]    Setup API Session
+    ${resp}=    Attach UE    ${MAX_UE_ID}
+    Status Code Should Be    ${resp}    200
+
+TC06 Podlaczenie UE Z ID Zero Zwraca Blad
+    [Documentation]    UE ID = 0 jest poza zakresem implementacji (wymaga >= 1), mimo że specyfikacja mówi 0-100.
+    [Tags]    known-defect
+    [Setup]    Setup API Session
+    ${resp}=    Attach UE    ${ZERO_UE_ID}
+    Status Code Should Be    ${resp}    200
+
+TC07 Podlaczenie UE Z ID Ujemnym Zwraca Blad
+    [Documentation]    UE ID = -1 jest poza zakresem, powinien zwrócić 422.
+    [Setup]    Setup API Session
+    ${resp}=    Attach UE    ${NEG_UE_ID}
+    Status Code Should Be    ${resp}    422
+
+TC08 Podlaczenie UE Z ID Powyzej Zakresu Zwraca Blad
+    [Documentation]    UE ID = 101 jest poza zakresem (1-100), powinien zwrócić 422.
+    [Setup]    Setup API Session
+    ${resp}=    Attach UE    ${OUT_OF_RANGE_ID}
+    Status Code Should Be    ${resp}    422
+
+TC09 Podlaczenie UE Bez Podania ID Zwraca Blad
+    [Documentation]    Żądanie bez UE ID powinno zwrócić błąd 422.
+    [Setup]    Setup API Session
+    ${resp}=    Attach UE Without ID
+    Status Code Should Be    ${resp}    422

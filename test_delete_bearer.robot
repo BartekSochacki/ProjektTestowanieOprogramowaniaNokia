@@ -3,81 +3,106 @@ Documentation   Testy funkcjonalności usuwania kanału transportowego (bearer) 
 Library         RequestsLibrary
 Library         Collections
 
-Suite Setup     Create Session    epc_simulator    http://localhost:8000
-Suite Teardown  Delete All Sessions
-Test Teardown   Reset Emulatora
-
 *** Variables ***
+${BASE_URL}                 http://localhost:8000
 ${VALID_UE_ID}              10
 ${DEFAULT_BEARER}           9
 ${DEDYKOWANY_BEARER}        5
-${OUT_OF_RANGE_BEARER_ID}   15
+${ZERO_BEARER_ID}           0
+${OUT_OF_RANGE_BEARER_ID}   10
 ${NIEAKTYWNY_BEARER}        7
 
-*** Test Cases ***
-1. Usuniecie dedykowanego bearera z UE
-    [Documentation]    Test sprawdza czy można usunąć dedykowany bearer z podłączonego UE podając UE ID oraz bearer ID.
-    Podlacz UE O ID    ${VALID_UE_ID}
-    Dodaj Bearer Dla UE    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
-    Usun Bearer Z UE    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
-    Sprawdz Czy UE Nie Ma Przypisanego Bearera    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
-
-2. Proba usuniecia bearera o ID spoza dozwolonego zakresu
-    [Documentation]    Test weryfikuje czy podanie bearer ID spoza zakresu powoduje wyświetlenie błędu.
-    Podlacz UE O ID    ${VALID_UE_ID}
-    Proba Usuniecia Bearera Spoza Zakresu Powinna Zwrocic Blad    ${VALID_UE_ID}    ${OUT_OF_RANGE_BEARER_ID}
-
-3. Proba usuniecia bearera ktory nie jest aktywny
-    [Documentation]    Test weryfikuje czy próba usunięcia bearera który nie jest aktywny (nie został dodany) powoduje wyświetlenie błędu.
-    Podlacz UE O ID    ${VALID_UE_ID}
-    Proba Usuniecia Nieaktywnego Bearera Powinna Zwrocic Blad    ${VALID_UE_ID}    ${NIEAKTYWNY_BEARER}
-
-4. Proba usuniecia domyslnego bearera
-    [Documentation]    Test weryfikuje czy nie ma możliwości usunięcia domyślnego bearera (ID 9) — operacja powinna zwrócić błąd.
-    Podlacz UE O ID    ${VALID_UE_ID}
-    Proba Usuniecia Domyslnego Bearera Powinna Zwrocic Blad    ${VALID_UE_ID}    ${DEFAULT_BEARER}
-
 *** Keywords ***
-Podlacz UE O ID
+Setup API Session
+    Create Session    epc    ${BASE_URL}
+    POST On Session    epc    /reset    expected_status=any
+
+Attach UE
     [Arguments]    ${ue_id}
-    ${body}=          Create Dictionary    ue_id=${ue_id}
-    ${response}=      POST On Session      epc_simulator    /ues    json=${body}
-    Status Should Be  200    ${response}
+    &{body}=        Create Dictionary    ue_id=${ue_id}
+    ${response}=    POST On Session    epc    /ues    json=${body}    expected_status=any
+    RETURN    ${response}
 
-Dodaj Bearer Dla UE
+Add Bearer
     [Arguments]    ${ue_id}    ${bearer_id}
-    ${body}=          Create Dictionary    bearer_id=${bearer_id}
-    ${response}=      POST On Session      epc_simulator    /ues/${ue_id}/bearers    json=${body}
-    Status Should Be  200    ${response}
+    &{body}=        Create Dictionary    bearer_id=${bearer_id}
+    ${response}=    POST On Session    epc    /ues/${ue_id}/bearers    json=${body}    expected_status=any
+    RETURN    ${response}
 
-Usun Bearer Z UE
+Delete Bearer
     [Arguments]    ${ue_id}    ${bearer_id}
-    ${response}=      DELETE On Session    epc_simulator    /ues/${ue_id}/bearers/${bearer_id}
-    Status Should Be  200    ${response}
+    ${response}=    DELETE On Session    epc    /ues/${ue_id}/bearers/${bearer_id}    expected_status=any
+    RETURN    ${response}
 
-Sprawdz Czy UE Nie Ma Przypisanego Bearera
-    [Arguments]    ${ue_id}    ${bearer_id}
-    ${response}=      GET On Session    epc_simulator    /ues/${ue_id}
-    Status Should Be  200    ${response}
-    ${resp_json}=     Set Variable    ${response.json()}
-    ${bearer_id_str}=  Convert To String    ${bearer_id}
-    Dictionary Should Not Contain Key    ${resp_json}[bearers]    ${bearer_id_str}
+Get UE State
+    [Arguments]    ${ue_id}
+    ${response}=    GET On Session    epc    /ues/${ue_id}    expected_status=any
+    RETURN    ${response}
 
-Proba Usuniecia Bearera Spoza Zakresu Powinna Zwrocic Blad
-    [Arguments]    ${ue_id}    ${bearer_id}
-    ${response}=      DELETE On Session    epc_simulator    /ues/${ue_id}/bearers/${bearer_id}    expected_status=any
-    Should Not Be Equal As Strings    ${response.status_code}    200
+Status Code Should Be
+    [Arguments]    ${response}    ${expected}
+    Should Be Equal As Integers    ${response.status_code}    ${expected}
 
-Proba Usuniecia Nieaktywnego Bearera Powinna Zwrocic Blad
-    [Arguments]    ${ue_id}    ${bearer_id}
-    ${response}=      DELETE On Session    epc_simulator    /ues/${ue_id}/bearers/${bearer_id}    expected_status=any
-    Should Not Be Equal As Strings    ${response.status_code}    200
+Status Code Should Be Error
+    [Arguments]    ${response}
+    Should Be True    ${response.status_code} >= 400
 
-Proba Usuniecia Domyslnego Bearera Powinna Zwrocic Blad
-    [Arguments]    ${ue_id}    ${bearer_id}
-    ${response}=      DELETE On Session    epc_simulator    /ues/${ue_id}/bearers/${bearer_id}    expected_status=any
-    Should Not Be Equal As Strings    ${response.status_code}    200
+*** Test Cases ***
+TC01 Usuniecie Dedykowanego Bearera Z UE
+    [Documentation]    Można usunąć dedykowany bearer z podłączonego UE.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    Add Bearer    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
+    ${resp}=    Delete Bearer    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
+    Status Code Should Be    ${resp}    200
 
-Reset Emulatora
-    ${response}=      POST On Session      epc_simulator    /reset    expected_status=any
-    Status Should Be  200    ${response}
+TC02 Po Usunieciu Bearer Znika Ze Stanu UE
+    [Documentation]    Po usunięciu bearer nie jest już widoczny w słowniku bearers UE.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    Add Bearer    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
+    Delete Bearer    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
+    ${state}=    Get UE State    ${VALID_UE_ID}
+    Status Code Should Be    ${state}    200
+    ${bearer_str}=    Convert To String    ${DEDYKOWANY_BEARER}
+    Dictionary Should Not Contain Key    ${state.json()}[bearers]    ${bearer_str}
+
+TC03 Usuniecie Bearera O ID Spoza Zakresu Zwraca Blad
+    [Documentation]    Bearer ID = 10 jest poza zakresem (1-9), usunięcie powinno zwrócić błąd.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    ${resp}=    Delete Bearer    ${VALID_UE_ID}    ${OUT_OF_RANGE_BEARER_ID}
+    Status Code Should Be Error    ${resp}
+
+TC04 Usuniecie Nieaktywnego Bearera Zwraca Blad
+    [Documentation]    Próba usunięcia bearera który nie jest aktywny (nie został dodany) zwraca błąd.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    ${resp}=    Delete Bearer    ${VALID_UE_ID}    ${NIEAKTYWNY_BEARER}
+    Status Code Should Be Error    ${resp}
+
+TC05 Usuniecie Domyslnego Bearera 9 Zwraca Blad
+    [Documentation]    Domyślny bearer ID=9 nie może zostać usunięty.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    ${resp}=    Delete Bearer    ${VALID_UE_ID}    ${DEFAULT_BEARER}
+    Status Code Should Be Error    ${resp}
+
+TC06 Usuniecie Bearera Bez UE ID Zwraca Blad
+    [Documentation]    Żądanie bez UE ID w URL powinno zwrócić błąd.
+    [Setup]    Setup API Session
+    ${resp}=    Delete Bearer    ${EMPTY}    ${DEDYKOWANY_BEARER}
+    Status Code Should Be Error    ${resp}
+
+TC07 Usuniecie Bearera Z ID Zero Zwraca Blad
+    [Documentation]    Bearer ID = 0 jest poza zakresem (1-9), powinien zwrócić błąd.
+    [Setup]    Setup API Session
+    Attach UE    ${VALID_UE_ID}
+    ${resp}=    Delete Bearer    ${VALID_UE_ID}    ${ZERO_BEARER_ID}
+    Status Code Should Be Error    ${resp}
+
+TC08 Usuniecie Bearera Dla Niepodlaczonego UE Zwraca Blad
+    [Documentation]    Próba usunięcia bearera dla UE które nie jest podłączone zwraca błąd.
+    [Setup]    Setup API Session
+    ${resp}=    Delete Bearer    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
+    Status Code Should Be Error    ${resp}
