@@ -82,3 +82,10 @@ TC06 Odlaczenie Jednego UE Nie Wplywa Na Drugie UE
     Detach UE    10
     ${state}=    Get UE State    20
     Status Code Should Be    ${state}    200
+
+TC07 Odlaczenie UE Bez Podania ID Zwraca Blad
+    [Documentation]    Żądanie odłączenia bez podania UE ID w URL powinno zwrócić błąd (404 lub 405).
+    [Setup]    Setup API Session
+    Attach UE    10
+    ${resp}=    Detach UE    ${EMPTY}
+    Status Code Should Be Error    ${resp}
