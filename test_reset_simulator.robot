@@ -5,10 +5,6 @@ Library         Collections
 
 *** Variables ***
 ${BASE_URL}         http://localhost:8000
-${VALID_UE_ID}      10
-${DEFAULT_BEARER}   9
-${VALID_SPEED_KBPS}     500
-${PROTOCOL}             tcp
 
 *** Keywords ***
 Setup API Session
@@ -52,7 +48,7 @@ Status Code Should Be Error
 TC01 Reset Przywraca Stan Poczatkowy I Usuwa Wszystkie UE
     [Documentation]    Po resecie lista podłączonych UE jest pusta.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
+    Attach UE    10
     ${ues_before}=    Get All UEs
     Should Not Be Empty    ${ues_before.json()}[ues]
     Reset Simulator
@@ -63,18 +59,18 @@ TC01 Reset Przywraca Stan Poczatkowy I Usuwa Wszystkie UE
 TC02 Reset Usuwa UE Wraz Z Bearerami
     [Documentation]    Po resecie UE nie istnieje w systemie, co oznacza że bearery również są usunięte.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
+    Attach UE    10
     Reset Simulator
-    ${state}=    Get UE State    ${VALID_UE_ID}
+    ${state}=    Get UE State    10
     Status Code Should Be Error    ${state}
 
 TC03 Reset Zatrzymuje Aktywne Transfery
     [Documentation]    Po resecie UE z aktywnym transferem nie istnieje, co potwierdza zatrzymanie ruchu.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    Start Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${VALID_SPEED_KBPS}
+    Attach UE    10
+    Start Traffic    10    9    500
     Reset Simulator
-    ${state}=    Get UE State    ${VALID_UE_ID}
+    ${state}=    Get UE State    10
     Status Code Should Be Error    ${state}
 
 TC04 Wielokrotny Reset Jest Mozliwy

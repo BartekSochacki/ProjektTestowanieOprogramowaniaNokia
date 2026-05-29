@@ -5,10 +5,6 @@ Library         Collections
 
 *** Variables ***
 ${BASE_URL}             http://localhost:8000
-${VALID_UE_ID}          10
-${DEFAULT_BEARER}       9
-${DODATKOWY_BEARER}     3
-${NIEPODLACZONY_UE_ID}  99
 
 *** Keywords ***
 Setup API Session
@@ -44,8 +40,8 @@ Status Code Should Be Error
 TC01 Sprawdzenie Listy Bearerow Dla Podlaczonego UE
     [Documentation]    Można odczytać listę bearerów dla podłączonego UE, lista nie jest pusta.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    ${state}=    Get UE State    ${VALID_UE_ID}
+    Attach UE    10
+    ${state}=    Get UE State    10
     Status Code Should Be    ${state}    200
     Dictionary Should Contain Key    ${state.json()}    bearers
     ${bearers}=    Get Dictionary Keys    ${state.json()}[bearers]
@@ -54,49 +50,45 @@ TC01 Sprawdzenie Listy Bearerow Dla Podlaczonego UE
 TC02 Sprawdzenie Bearerow Po Dodaniu Dodatkowego Bearera
     [Documentation]    Po dodaniu nowego bearera lista zawiera zarówno bearer domyślny jak i nowy.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    Add Bearer    ${VALID_UE_ID}    ${DODATKOWY_BEARER}
-    ${state}=    Get UE State    ${VALID_UE_ID}
+    Attach UE    10
+    Add Bearer    10    3
+    ${state}=    Get UE State    10
     Status Code Should Be    ${state}    200
-    ${default_str}=    Convert To String    ${DEFAULT_BEARER}
-    ${dodatkowy_str}=    Convert To String    ${DODATKOWY_BEARER}
-    Dictionary Should Contain Key    ${state.json()}[bearers]    ${default_str}
-    Dictionary Should Contain Key    ${state.json()}[bearers]    ${dodatkowy_str}
+    Dictionary Should Contain Key    ${state.json()}[bearers]    9
+    Dictionary Should Contain Key    ${state.json()}[bearers]    3
 
 TC03 Nowe UE Ma Dokladnie Jeden Bearer Domyslny
     [Documentation]    Po podłączeniu UE ma dokładnie jeden bearer (domyślny ID=9).
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    ${state}=    Get UE State    ${VALID_UE_ID}
+    Attach UE    10
+    ${state}=    Get UE State    10
     Status Code Should Be    ${state}    200
     ${bearers}=    Get Dictionary Keys    ${state.json()}[bearers]
     Length Should Be    ${bearers}    1
-    ${default_str}=    Convert To String    ${DEFAULT_BEARER}
-    Dictionary Should Contain Key    ${state.json()}[bearers]    ${default_str}
+    Dictionary Should Contain Key    ${state.json()}[bearers]    9
 
 TC04 Bearer Ma Klucz Active W Strukturze
     [Documentation]    Każdy bearer w stanie UE zawiera klucz active opisujący jego aktywność.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    ${state}=    Get UE State    ${VALID_UE_ID}
+    Attach UE    10
+    ${state}=    Get UE State    10
     Status Code Should Be    ${state}    200
-    ${default_str}=    Convert To String    ${DEFAULT_BEARER}
-    ${bearer}=    Get From Dictionary    ${state.json()}[bearers]    ${default_str}
+    ${bearer}=    Get From Dictionary    ${state.json()}[bearers]    9
     Dictionary Should Contain Key    ${bearer}    active
 
 TC05 Sprawdzenie Bearerow Dla Niepodlaczonego UE Zwraca Blad
     [Documentation]    Próba pobrania stanu UE które nie jest podłączone zwraca błąd.
     [Setup]    Setup API Session
-    ${state}=    Get UE State    ${NIEPODLACZONY_UE_ID}
+    ${state}=    Get UE State    99
     Status Code Should Be Error    ${state}
 
 TC06 Liczba Bearerow Rosnie Po Dodaniu Nowych
     [Documentation]    Liczba bearerów w stanie UE rośnie po każdym dodaniu nowego bearera.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    ${state_before}=    Get UE State    ${VALID_UE_ID}
+    Attach UE    10
+    ${state_before}=    Get UE State    10
     ${count_before}=    Get Length    ${state_before.json()}[bearers]
-    Add Bearer    ${VALID_UE_ID}    ${DODATKOWY_BEARER}
-    ${state_after}=    Get UE State    ${VALID_UE_ID}
+    Add Bearer    10    3
+    ${state_after}=    Get UE State    10
     ${count_after}=    Get Length    ${state_after.json()}[bearers]
     Should Be True    ${count_after} > ${count_before}

@@ -5,12 +5,6 @@ Library         Collections
 
 *** Variables ***
 ${BASE_URL}                 http://localhost:8000
-${VALID_UE_ID}              10
-${DEFAULT_BEARER}           9
-${DEDYKOWANY_BEARER}        5
-${ZERO_BEARER_ID}           0
-${OUT_OF_RANGE_BEARER_ID}   10
-${NIEAKTYWNY_BEARER}        7
 
 *** Keywords ***
 Setup API Session
@@ -51,58 +45,57 @@ Status Code Should Be Error
 TC01 Usuniecie Dedykowanego Bearera Z UE
     [Documentation]    Można usunąć dedykowany bearer z podłączonego UE.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    Add Bearer    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
-    ${resp}=    Delete Bearer    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
+    Attach UE    10
+    Add Bearer    10    5
+    ${resp}=    Delete Bearer    10    5
     Status Code Should Be    ${resp}    200
 
 TC02 Po Usunieciu Bearer Znika Ze Stanu UE
     [Documentation]    Po usunięciu bearer nie jest już widoczny w słowniku bearers UE.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    Add Bearer    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
-    Delete Bearer    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
-    ${state}=    Get UE State    ${VALID_UE_ID}
+    Attach UE    10
+    Add Bearer    10    5
+    Delete Bearer    10    5
+    ${state}=    Get UE State    10
     Status Code Should Be    ${state}    200
-    ${bearer_str}=    Convert To String    ${DEDYKOWANY_BEARER}
-    Dictionary Should Not Contain Key    ${state.json()}[bearers]    ${bearer_str}
+    Dictionary Should Not Contain Key    ${state.json()}[bearers]    5
 
 TC03 Usuniecie Bearera O ID Spoza Zakresu Zwraca Blad
     [Documentation]    Bearer ID = 10 jest poza zakresem (1-9), usunięcie powinno zwrócić błąd.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    ${resp}=    Delete Bearer    ${VALID_UE_ID}    ${OUT_OF_RANGE_BEARER_ID}
+    Attach UE    10
+    ${resp}=    Delete Bearer    10    10
     Status Code Should Be Error    ${resp}
 
 TC04 Usuniecie Nieaktywnego Bearera Zwraca Blad
     [Documentation]    Próba usunięcia bearera który nie jest aktywny (nie został dodany) zwraca błąd.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    ${resp}=    Delete Bearer    ${VALID_UE_ID}    ${NIEAKTYWNY_BEARER}
+    Attach UE    10
+    ${resp}=    Delete Bearer    10    7
     Status Code Should Be Error    ${resp}
 
 TC05 Usuniecie Domyslnego Bearera 9 Zwraca Blad
     [Documentation]    Domyślny bearer ID=9 nie może zostać usunięty.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    ${resp}=    Delete Bearer    ${VALID_UE_ID}    ${DEFAULT_BEARER}
+    Attach UE    10
+    ${resp}=    Delete Bearer    10    9
     Status Code Should Be Error    ${resp}
 
 TC06 Usuniecie Bearera Bez UE ID Zwraca Blad
     [Documentation]    Żądanie bez UE ID w URL powinno zwrócić błąd.
     [Setup]    Setup API Session
-    ${resp}=    Delete Bearer    ${EMPTY}    ${DEDYKOWANY_BEARER}
+    ${resp}=    Delete Bearer    ${EMPTY}    5
     Status Code Should Be Error    ${resp}
 
 TC07 Usuniecie Bearera Z ID Zero Zwraca Blad
     [Documentation]    Bearer ID = 0 jest poza zakresem (1-9), powinien zwrócić błąd.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    ${resp}=    Delete Bearer    ${VALID_UE_ID}    ${ZERO_BEARER_ID}
+    Attach UE    10
+    ${resp}=    Delete Bearer    10    0
     Status Code Should Be Error    ${resp}
 
 TC08 Usuniecie Bearera Dla Niepodlaczonego UE Zwraca Blad
     [Documentation]    Próba usunięcia bearera dla UE które nie jest podłączone zwraca błąd.
     [Setup]    Setup API Session
-    ${resp}=    Delete Bearer    ${VALID_UE_ID}    ${DEDYKOWANY_BEARER}
+    ${resp}=    Delete Bearer    10    5
     Status Code Should Be Error    ${resp}

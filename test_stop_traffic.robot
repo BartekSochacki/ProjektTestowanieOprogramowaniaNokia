@@ -5,12 +5,6 @@ Library         Collections
 
 *** Variables ***
 ${BASE_URL}             http://localhost:8000
-${VALID_UE_ID}          10
-${DEFAULT_BEARER}       9
-${DODATKOWY_BEARER}     3
-${VALID_SPEED_KBPS}     500
-${PROTOCOL}             tcp
-${NIEPODLACZONY_UE_ID}  99
 
 *** Keywords ***
 Setup API Session
@@ -57,24 +51,24 @@ Status Code Should Be Error
 TC01 Zakonczenie Transferu Dla Konkretnego Bearera
     [Documentation]    Transfer danych dla konkretnego bearera można poprawnie zakończyć.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    Start Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${VALID_SPEED_KBPS}
-    ${resp}=    Stop Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}
+    Attach UE    10
+    Start Traffic    10    9    500
+    ${resp}=    Stop Traffic    10    9
     Status Code Should Be    ${resp}    200
 
 TC02 Zakonczenie Transferu Dla Wszystkich Bearerow UE
     [Documentation]    Transfer można zakończyć dla wszystkich bearerów jednego UE, każdy wraca do stanu nieaktywnego.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    Add Bearer    ${VALID_UE_ID}    ${DODATKOWY_BEARER}
-    Start Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${VALID_SPEED_KBPS}
-    Start Traffic    ${VALID_UE_ID}    ${DODATKOWY_BEARER}    ${VALID_SPEED_KBPS}
-    ${state_before}=    Get UE State    ${VALID_UE_ID}
+    Attach UE    10
+    Add Bearer    10    3
+    Start Traffic    10    9    500
+    Start Traffic    10    3    500
+    ${state_before}=    Get UE State    10
     ${bearers}=    Get Dictionary Keys    ${state_before.json()}[bearers]
     FOR    ${bearer_id}    IN    @{bearers}
-        Stop Traffic    ${VALID_UE_ID}    ${bearer_id}
+        Stop Traffic    10    ${bearer_id}
     END
-    ${state_after}=    Get UE State    ${VALID_UE_ID}
+    ${state_after}=    Get UE State    10
     ${all_bearers}=    Get Dictionary Values    ${state_after.json()}[bearers]
     FOR    ${bearer}    IN    @{all_bearers}
         Should Not Be True    ${bearer}[active]
@@ -84,37 +78,35 @@ TC03 Zatrzymanie Nieaktywnego Transferu Zwraca Blad
     [Documentation]    Próba zatrzymania transferu który nie jest aktywny powinna zwrócić błąd. API zwraca 200 (zachowanie idempotentne - niezgodność ze specyfikacją).
     [Tags]    known-defect
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    ${resp}=    Stop Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}
+    Attach UE    10
+    ${resp}=    Stop Traffic    10    9
     Status Code Should Be Error    ${resp}
 
 TC04 Po Zatrzymaniu Bearer Jest Nieaktywny
     [Documentation]    Po zatrzymaniu transferu bearer w stanie UE ma flagę active = False.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    Start Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${VALID_SPEED_KBPS}
-    Stop Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}
-    ${state}=    Get UE State    ${VALID_UE_ID}
+    Attach UE    10
+    Start Traffic    10    9    500
+    Stop Traffic    10    9
+    ${state}=    Get UE State    10
     Status Code Should Be    ${state}    200
-    ${default_str}=    Convert To String    ${DEFAULT_BEARER}
-    ${bearer}=    Get From Dictionary    ${state.json()}[bearers]    ${default_str}
+    ${bearer}=    Get From Dictionary    ${state.json()}[bearers]    9
     Should Not Be True    ${bearer}[active]
 
 TC05 Zatrzymanie Transferu Dla Niepodlaczonego UE Zwraca Blad
     [Documentation]    Próba zatrzymania transferu dla UE które nie jest podłączone zwraca błąd.
     [Setup]    Setup API Session
-    ${resp}=    Stop Traffic    ${NIEPODLACZONY_UE_ID}    ${DEFAULT_BEARER}
+    ${resp}=    Stop Traffic    99    9
     Status Code Should Be Error    ${resp}
 
 TC06 Zatrzymanie Transferu Na Jednym Bearerze Nie Wplywa Na Drugi
     [Documentation]    Zatrzymanie transferu na jednym bearerze nie dezaktywuje pozostałych bearerów UE.
     [Setup]    Setup API Session
-    Attach UE    ${VALID_UE_ID}
-    Add Bearer    ${VALID_UE_ID}    ${DODATKOWY_BEARER}
-    Start Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}    ${VALID_SPEED_KBPS}
-    Start Traffic    ${VALID_UE_ID}    ${DODATKOWY_BEARER}    ${VALID_SPEED_KBPS}
-    Stop Traffic    ${VALID_UE_ID}    ${DEFAULT_BEARER}
-    ${state}=    Get UE State    ${VALID_UE_ID}
-    ${dodatkowy_str}=    Convert To String    ${DODATKOWY_BEARER}
-    ${bearer}=    Get From Dictionary    ${state.json()}[bearers]    ${dodatkowy_str}
+    Attach UE    10
+    Add Bearer    10    3
+    Start Traffic    10    9    500
+    Start Traffic    10    3    500
+    Stop Traffic    10    9
+    ${state}=    Get UE State    10
+    ${bearer}=    Get From Dictionary    ${state.json()}[bearers]    3
     Should Be True    ${bearer}[active]
